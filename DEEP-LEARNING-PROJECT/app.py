@@ -94,7 +94,7 @@ st.markdown(SPACE_CSS, unsafe_allow_html=True)
 # ===============================
 # 1. CONSTANTES FICHIERS
 # ===============================
-DATA_PATH = Path("neo_daily_lags (1).csv.gz")
+DATA_PATH = Path("neo_daily_lags.csv.gz")
 CONFIG_PATH = Path("features_config.json")
 SCALER_PATH = Path("scaler.pkl")
 
