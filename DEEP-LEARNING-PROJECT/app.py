@@ -94,15 +94,17 @@ st.markdown(SPACE_CSS, unsafe_allow_html=True)
 # ===============================
 # 1. CONSTANTES FICHIERS
 # ===============================
-DATA_PATH = Path("neo_daily_lags.csv.gz")
-CONFIG_PATH = Path("features_config.json")
-SCALER_PATH = Path("scaler.pkl")
+BASE_DIR = Path(__file__).parent
+
+DATA_PATH   = BASE_DIR / "neo_daily_lags.csv.gz"
+CONFIG_PATH = BASE_DIR / "features_config.json"
+SCALER_PATH = BASE_DIR / "scaler.pkl"
 
 MODEL_PATHS = {
-    "MLP": Path("model_MLP_neo.h5"),
-    "GRU": Path("model_GRU_neo.h5"),
-    "LSTM": Path("model_LSTM_neo.h5"),
-    "Best (model_neo)": Path("model_neo.h5"),  # optionnel
+    "MLP":              BASE_DIR / "model_MLP_neo.h5",
+    "GRU":              BASE_DIR / "model_GRU_neo.h5",
+    "LSTM":             BASE_DIR / "model_LSTM_neo.h5",
+    "Best (model_neo)": BASE_DIR / "model_neo.h5",
 }
 
 # ===============================
@@ -184,7 +186,7 @@ def categorize_rarity(value: float) -> str:
         return "3 : rare (~1 fois par décennie)"
     elif r == 4:
         return "4 : très rare (~1 fois par siècle, extrapolé)"
-    else:  # r >= 5
+    else:
         return f"{r} : extrêmement rare (bien moins fréquent qu'une fois par siècle, extrapolé)"
 
 # ===============================
@@ -209,11 +211,11 @@ st.markdown(
 # ===============================
 missing_files = []
 if not DATA_PATH.exists():
-    missing_files.append(str(DATA_PATH))
+    missing_files.append(str(DATA_PATH.name))
 if not CONFIG_PATH.exists():
-    missing_files.append(str(CONFIG_PATH))
+    missing_files.append(str(CONFIG_PATH.name))
 if not SCALER_PATH.exists():
-    missing_files.append(str(SCALER_PATH))
+    missing_files.append(str(SCALER_PATH.name))
 
 if missing_files:
     st.error("❌ Fichiers manquants : " + ", ".join(missing_files))
@@ -279,7 +281,6 @@ with tab_data:
         st.write("Nombre de colonnes :", len(df.columns))
         st.write("Premières colonnes :", list(df.columns)[:40])
 
-    # Vérifier les features
     missing = [c for c in features_from_config + [target] if c not in df.columns]
     if missing:
         st.error(
@@ -315,26 +316,25 @@ with tab_eval:
 
         y_pred_test = model.predict(X_test_seq).flatten()
 
-        mae = mean_absolute_error(y_test_seq, y_pred_test)
-        mse = mean_squared_error(y_test_seq, y_pred_test)
+        mae  = mean_absolute_error(y_test_seq, y_pred_test)
+        mse  = mean_squared_error(y_test_seq, y_pred_test)
         rmse = np.sqrt(mse)
-        r2 = r2_score(y_test_seq, y_pred_test)
+        r2   = r2_score(y_test_seq, y_pred_test)
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("MAE", f"{mae:.4f}")
-    m2.metric("MSE", f"{mse:.4f}")
+    m1.metric("MAE",  f"{mae:.4f}")
+    m2.metric("MSE",  f"{mse:.4f}")
     m3.metric("RMSE", f"{rmse:.4f}")
-    m4.metric("R²", f"{r2:.4f}")
+    m4.metric("R²",   f"{r2:.4f}")
 
     st.markdown("#### 📈 Rarity réelle vs prédite (test set fenêtré)")
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(y_test_seq, label="Rarity réelle")
+    ax.plot(y_test_seq,  label="Rarity réelle")
     ax.plot(y_pred_test, label="Rarity prédite")
     ax.set_xlabel("Index séquentiel (fenêtrage)")
     ax.set_ylabel("Rarity")
     ax.legend()
     ax.grid(True, alpha=0.3)
-
     st.pyplot(fig)
 
     st.markdown("#### 📥 Télécharger les prédictions du test set")
@@ -377,31 +377,19 @@ with tab_single:
     col_a, col_b, col_c = st.columns(3)
 
     with col_a:
-        input_diam = st.number_input(
-            "Diameter_Max",
-            value=default_diam,
-            format="%.6f"
-        )
+        input_diam = st.number_input("Diameter_Max",       value=default_diam, format="%.6f")
     with col_b:
-        input_vrel = st.number_input(
-            "V relative(km/s)",
-            value=default_vrel,
-            format="%.6f"
-        )
+        input_vrel = st.number_input("V relative(km/s)",   value=default_vrel, format="%.6f")
     with col_c:
-        input_Hmag = st.number_input(
-            "H(mag)",
-            value=default_Hmag,
-            format="%.3f"
-        )
+        input_Hmag = st.number_input("H(mag)",             value=default_Hmag, format="%.3f")
 
     if st.button("🔮 Prédire Rarity pour ce scénario"):
         context = df[features].tail(window).copy()
 
         last_idx = context.index[-1]
-        context.loc[last_idx, "Diameter_Max"] = input_diam
-        context.loc[last_idx, "V relative(km/s)"] = input_vrel
-        context.loc[last_idx, "H(mag)"] = input_Hmag
+        context.loc[last_idx, "Diameter_Max"]      = input_diam
+        context.loc[last_idx, "V relative(km/s)"]  = input_vrel
+        context.loc[last_idx, "H(mag)"]            = input_Hmag
 
         context_scaled = scaler.transform(context.values)
         X_single = context_scaled.reshape(1, window, len(features))
